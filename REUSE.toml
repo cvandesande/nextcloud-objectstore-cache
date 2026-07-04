@@ -1,0 +1,17 @@
+version = 1
+SPDX-PackageName = "objectstore_cache"
+SPDX-PackageDownloadLocation = "https://github.com/CVan/objectstore_cache"
+
+[[annotations]]
+path = [
+	".gitignore",
+	"appinfo/info.xml",
+	"composer.json",
+	"composer.lock",
+	"psalm.xml",
+	"README.md",
+	"tests/phpunit.xml",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 CVan"
+SPDX-License-Identifier = "AGPL-3.0-or-later"

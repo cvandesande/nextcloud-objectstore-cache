@@ -1,0 +1,70 @@
+# SPDX-FileCopyrightText: 2026 CVan
+# SPDX-License-Identifier: AGPL-3.0-or-later
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  phpunit:
+    name: PHPUnit (PHP ${{ matrix.php-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Test on every PHP the app supports, including the production runtime (8.5).
+        php-version: ['8.1', '8.2', '8.3', '8.4', '8.5']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+
+      # --ignore-platform-req=php: the dev-only static-analysis tools (psalm) cap at
+      # PHP 8.3, but the app and its unit tests run on newer PHP. They are not invoked
+      # in this job, so installing them under a newer runtime is harmless.
+      - name: Install dependencies
+        run: composer install --ignore-platform-req=php --no-interaction --no-progress
+
+      - name: Run unit tests
+        run: composer run test:unit
+
+  static-analysis:
+    name: Lint, coding standard & Psalm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        # Psalm 5.x does not run on PHP 8.4+; static analysis is runtime-independent
+        # (it targets the app's declared php floor), so pin it to a supported runtime.
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress
+
+      - name: PHP lint
+        run: composer run lint
+
+      - name: Coding standard (php-cs-fixer)
+        run: composer run cs:check
+
+      - name: Psalm
+        run: composer run psalm

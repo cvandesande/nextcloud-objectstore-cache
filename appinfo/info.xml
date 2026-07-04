@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<!--
+  SPDX-FileCopyrightText: 2026 CVan
+  SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+	<id>objectstore_cache</id>
+	<name>Object Store Read Cache</name>
+	<summary>Read-through cache and retry wrapper for the S3 primary object store</summary>
+	<description><![CDATA[
+Decorates the built-in S3 primary object-storage backend with:
+
+- a distributed (Redis) read-through cache for small objects — note bodies and
+  per-file encryption keys — so repeated reads are served without hitting the
+  object store; and
+- transient-failure retries with exponential backoff around reads, to tolerate a
+  throttling object store (e.g. Hetzner "503 Slow Down").
+
+The decorator class is wired in via `config.php` (`objectstore` → `class`). It does
+not need to be enabled as an app when loaded via a `*.config.php` require (see the
+project README), which also means a disabled app can never break file access.
+
+Because the cache sits below the encryption layer, it only ever holds the same
+encrypted-at-rest bytes the object store already stores.
+	]]></description>
+	<version>1.0.0</version>
+	<licence>agpl</licence>
+	<author>CVan</author>
+	<namespace>ObjectStoreCache</namespace>
+	<category>tools</category>
+	<bugs>https://github.com/CVan/objectstore_cache/issues</bugs>
+	<repository type="git">https://github.com/CVan/objectstore_cache.git</repository>
+	<dependencies>
+		<nextcloud min-version="30" max-version="35"/>
+	</dependencies>
+</info>

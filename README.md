@@ -17,9 +17,15 @@ This wrapper:
 
 - **Retries** reads on transient failure (connection error / `429` / `5xx`) with
   exponential backoff + jitter; genuinely missing objects fail fast (one HEAD check).
+  When a read is finally given up on, the exception records the underlying HTTP cause
+  (e.g. `HTTP/1.1 503 Slow Down`) so the reason is visible in the log.
 - **Caches** small objects (≤ 64 KB — note bodies, encryption keys) in the
   distributed cache (Redis), so repeated reads are served without hitting the store.
   Measured ~70× faster on a warm repeat Notes read.
+- **Serves stale on error** (`stale-if-error`, RFC 5861): if a read fails but a cached
+  copy is still within its grace window, that copy is served instead of failing the
+  read — so an object seen before (notably the encryption keys read on nearly every
+  request) stays readable through a backend outage.
 
 Encryption is unaffected: the wrapper sits **below** the encryption layer, so it only
 ever sees the encrypted-at-rest bytes the object store already holds (base64-encoded
@@ -115,7 +121,8 @@ Bump `max-version` in `appinfo/info.xml` as you validate new Nextcloud releases.
 | Constant | Default | Meaning |
 |---|---|---|
 | `CACHE_MAX_SIZE` | `65536` | Max object size (bytes) to cache; larger objects stream through untouched. |
-| `CACHE_TTL` | `300` | Cache TTL (s). Bounds staleness from a missed invalidation / read-write race; keep it above your client sync interval. |
+| `CACHE_TTL` | `300` | How long an entry stays fresh (s). Bounds staleness from a missed invalidation / read-write race; keep it above your client sync interval. |
+| `STALE_IF_ERROR` | `86400` | Grace window (s) after an entry stops being fresh during which it may still be served, but only when the backend read fails. Bounds how long a removed object could be served if it were ever changed out-of-band. |
 | `READ_MAX_ATTEMPTS` | `10` | Max attempts for a transient read failure. |
 
 ## Known trade-offs

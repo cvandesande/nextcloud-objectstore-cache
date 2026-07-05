@@ -3,3 +3,6 @@
 .phpunit.cache/
 .phpunit.result.cache
 psalm.xml.dist.cache
+
+# Deployment-specific handoff, not part of the published app
+/HANDOFF.md

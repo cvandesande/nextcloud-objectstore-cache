@@ -41,7 +41,8 @@ every call to the backend it builds from its constructor arguments (the core
 read and mutating paths add behaviour:
 
 - `readObject` — serves from the cache when warm, otherwise reads through the backend
-  with retries and caches the result if it is small enough.
+  with retries and caches the result if it is small enough. Objects too large to cache
+  stream straight through, without the extra backend round-trip a rewind would cost.
 - `writeObject`, `writeObjectWithMetaData`, `deleteObject`, `copyObject` and
   `completeMultipartUpload` — invalidate the affected cache key, then delegate.
 

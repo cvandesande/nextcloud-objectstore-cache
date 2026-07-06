@@ -117,15 +117,25 @@ class CachingObjectStore implements IObjectStore, IObjectStoreMetaData, IObjectS
 			return $this->createMemoryStream($entry['content']);
 		}
 
-		// cache small objects, stream large ones through untouched. the size is not
-		// known up front, so read up to the limit: a short read means the whole object
-		// fitted and is cached, otherwise the stream is rewound and returned as-is
+		// cache small objects, stream large ones through. the size is not known up
+		// front, so read up to the limit: a short read means the whole object fitted
+		// and is cached
 		$content = stream_get_contents($stream, self::CACHE_MAX_SIZE + 1);
-		if ($content === false || strlen($content) > self::CACHE_MAX_SIZE) {
+		if ($content === false) {
+			return $stream;
+		}
+		if (strlen($content) > self::CACHE_MAX_SIZE) {
 			if ($entry !== null) {
 				// object grew past the cache limit, drop the stale small entry so it
 				// is never served in its place
 				$cache->remove($urn);
+			}
+			// hand back the bytes already read followed by the rest of the stream,
+			// rather than rewinding, which on the httpseek:// wrapper would re-fetch
+			// the whole object from the backend
+			$prefixed = PrefixStream::open($content, $stream);
+			if ($prefixed !== false) {
+				return $prefixed;
 			}
 			rewind($stream);
 			return $stream;
